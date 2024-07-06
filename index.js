@@ -14,7 +14,9 @@ app.use(helmet());
 app.use(express.json());
 
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
+const blobServiceClient = BlobServiceClient.fromConnectionString(
+  process.env.AZURE_STORAGE_CONNECTION_STRING
+);
 
 // Handle File Uploads
 const storage = multer.diskStorage({
@@ -33,7 +35,9 @@ app.post("/container/create", async (req, res) => {
     const containerName = req.body.id;
     const containerClient = blobServiceClient.getContainerClient(containerName);
 
-    const createContainerResponse = await containerClient.create();
+    const createContainerResponse = await containerClient.create({
+      access: "container",
+    });
     console.log(
       `Container was created successfully.\n\trequestId:${createContainerResponse.requestId}\n\tURL: ${containerClient.url}`
     );
@@ -94,18 +98,22 @@ app.post("/blob/create", upload.single("file"), async (req, res) => {
     );
 
     const uploadBlobResponse = await blockBlobClient.uploadFile(req.file.path);
-    console.log(`Blob was uploaded successfully. requestId: ${uploadBlobResponse.requestId}`);
+    console.log(
+      `Blob was uploaded successfully. requestId: ${uploadBlobResponse.requestId}`
+    );
 
     fs.unlinkSync(req.file.path);
 
     res.status(200).json({
       message: "File uploaded successfully",
       blobUrl: blockBlobClient.url,
-      requestId: uploadBlobResponse.requestId
+      requestId: uploadBlobResponse.requestId,
     });
   } catch (error) {
     console.error("Error uploading file:", error);
-    res.status(500).json({ message: "Error uploading file", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error uploading file", error: error.message });
   }
 });
 
@@ -115,11 +123,13 @@ app.delete("/blob/delete", async (req, res) => {
     const blobName = req.query.filename;
 
     if (!containerName || !blobName) {
-      return res.status(400).json({ message: "Container ID and filename are required" });
+      return res
+        .status(400)
+        .json({ message: "Container ID and filename are required" });
     }
 
     const options = {
-      deleteSnapshots: 'include'
+      deleteSnapshots: "include",
     };
 
     const containerClient = blobServiceClient.getContainerClient(containerName);
@@ -129,10 +139,16 @@ app.delete("/blob/delete", async (req, res) => {
 
     console.log(`Deleted blob ${blobName} from container ${containerName}`);
 
-    res.status(200).json({ message: `Blob ${blobName} deleted successfully from container ${containerName}` });
+    res
+      .status(200)
+      .json({
+        message: `Blob ${blobName} deleted successfully from container ${containerName}`,
+      });
   } catch (error) {
     console.error(`Error deleting blob: ${error.message}`);
-    res.status(500).json({ message: "Error deleting blob", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting blob", error: error.message });
   }
 });
 
